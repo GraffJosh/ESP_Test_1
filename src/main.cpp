@@ -3,12 +3,24 @@
 
 #include "WiFi.h"
 #include "U8x8lib.h"
+#include "time.h"
+#include "esp_deep_sleep.h"
+
+
+#define uS_TO_m_FACTOR 60000000   // Conversion factor for micro seconds to minutes
+#define TIME_TO_SLEEP  1        // Time ESP32 will go to sleep (in minutes)
+
 
 // the OLED used
 U8X8_SSD1306_128X64_NONAME_SW_I2C u8x8(/* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
 
 int num_loops = 0;
-char currentSSID[15];
+char printable_time[50];
+
+const char* ntpServer = "200.160.7.186"; // "a.st1.ntp.br";
+const long  gmtOffset_sec = -3 * 3600;
+const int   daylightOffset_sec = 0;  // se estiver horário verão=3600;
+
 
 void setup()
 {
@@ -21,67 +33,51 @@ void setup()
 
   u8x8.begin();
   u8x8.setFont(u8x8_font_chroma48medium8_r);
+
+    struct tm tm;
+    tm.tm_year = 2018 - 1900;
+    tm.tm_mon = 10;
+    tm.tm_mday = 15;
+    tm.tm_hour = 20;
+    tm.tm_min = 50;
+    tm.tm_sec = 0;
+    time_t t = mktime(&tm);
+    printf("Setting time: %s", asctime(&tm));
+    struct timeval now = { .tv_sec = t };
+    settimeofday(&now, NULL);
 }
 
 
-static void doSomeWork()
+void printLocalTime(char* input_time)
 {
-  int n = WiFi.scanNetworks();
+  struct tm timeinfo;
+  if(!getLocalTime(&timeinfo)){
+    Serial.println("Failed to obtain time");
+    strcpy(input_time,"failed");
+    return;
+  }else{
+    // strftime(timeStringBuff, sizeof(timeStringBuff), "%A, %B %d %Y %H:%M:%S", &timeinfo);
+    strftime(input_time, 50, "%H:%M:%S", &timeinfo);
 
-  if (n == 0) {
-    u8x8.drawString(0, 0, "Searching networks.");
-  } else {
-    u8x8.drawString(0, 0, "Networks found: ");
-    for (int i = 0; i < n; ++i) {
-      // Print SSID for each network found
-      char currentSSID[64];
-      WiFi.SSID(i).toCharArray(currentSSID, 64);
-      u8x8.drawString(0, i + 1, currentSSID);
-    }
   }
 
-  // Wait a bit before scanning again
-  delay(5000);
 }
-
 
 void loop()
 {
 
-  if (num_loops%5==0) {
-
           u8x8.clear();
-      u8x8.setFont(u8x8_font_inr33_3x6_r);
-      u8x8.drawString(0, 2, "06:53");
-      delay(1000);
-      u8x8.clear();
-  }
-  if (num_loops % 5 == 0) {
-
-      u8x8.clear();
-
-      u8x8.setFont(u8x8_font_chroma48medium8_r);
-      u8x8.drawString(0, 0, "Searching.");
+      // u8x8.setFont(u8x8_font_inr33_3x6_r);
 
       digitalWrite(25,HIGH);
-        int n = WiFi.scanNetworks();
-        digitalWrite(25,LOW);
-      WiFi.SSID(1).toCharArray(currentSSID, 15);
-      u8x8.clear();
-  }
+      // printLocalTime(printable_time);
+      digitalWrite(25,LOW);
 
-  u8x8.setFont(u8x8_font_chroma48medium8_r);
-  u8x8.drawString(0, 0, "Networks found: ");
 
-  u8x8.drawString(0, 2, currentSSID);
-
-  Serial.println("ESP32 loop");
-  delay(500);
-  num_loops++;
-  if(num_loops == 500)
-  {
-    num_loops = 0;
-  }
+      u8x8.setFont(u8x8_font_chroma48medium8_r);
+      u8x8.drawString(0,0,printable_time);
+      // printLocalTime();
+      delay(1000);
 }
 
 #endif
