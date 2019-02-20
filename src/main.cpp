@@ -1,19 +1,24 @@
 #ifndef main_test
 #define main_test 1
 
+#include <Arduino.h>
 #include "WiFi.h"
-#include "U8x8lib.h"
+#include "u8g2lib.h"
 #include "time.h"
-#include "esp_deep_sleep.h"
 
 
 #define uS_TO_m_FACTOR 60000000   // Conversion factor for micro seconds to minutes
 #define TIME_TO_SLEEP  1        // Time ESP32 will go to sleep (in minutes)
-
+#define CLK1306 15
+#define DATA1306 4
+#define RST1306 16
 
 // the OLED used
-U8X8_SSD1306_128X64_NONAME_SW_I2C u8x8(/* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
-
+// U8X8_SSD1306_128X64_NONAME_SW_I2C u8x8(/* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
+  // U8G2_ssd1306_i2c_128x64_noname_1 u8g2(U8G2_R0,/* clock=*/ 15, /* data=*/ 4, /* reset=*/ 16);
+// U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0,CLK1306,DATA1306,RST1306);
+// U8G2_SSD1306_128X64_NONAME_F_2ND_HW_I2C u8g2(U8G2_R0, RST1306);
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, RST1306, CLK1306, DATA1306);
 int num_loops = 0;
 char printable_time[50];
 
@@ -31,8 +36,7 @@ void setup()
 
   pinMode(25, OUTPUT);
 
-  u8x8.begin();
-  u8x8.setFont(u8x8_font_chroma48medium8_r);
+  u8g2.begin();
 
     struct tm tm;
     tm.tm_year = 2018 - 1900;
@@ -66,16 +70,21 @@ void printLocalTime(char* input_time)
 void loop()
 {
 
-          u8x8.clear();
-      // u8x8.setFont(u8x8_font_inr33_3x6_r);
+          u8g2.clear();
+      // u8g2.setFont(u8g2_font_inr33_3x6_r);
+
+      // printLocalTime(printable_time);
 
       digitalWrite(25,HIGH);
-      // printLocalTime(printable_time);
-      digitalWrite(25,LOW);
 
-
-      u8x8.setFont(u8x8_font_chroma48medium8_r);
-      u8x8.drawString(0,0,printable_time);
+        u8g2.firstPage();
+        do {
+          u8g2.setFont(u8g2_font_ncenB14_tr);
+          u8g2.drawStr(0,20,"Hello World!");
+        } while ( u8g2.nextPage() );
+          digitalWrite(25,LOW);
+      // u8x8.setFont(u8g2_font_chroma48medium8_r);
+      // u8x8.drawString(0,0,printable_time);
       // printLocalTime();
       delay(1000);
 }
